@@ -7,12 +7,16 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,9 +27,11 @@ import com.dms.dto.FolderResponseDTO;
 import com.dms.dto.UserResponseDTO;
 import com.dms.entity.Document;
 import com.dms.entity.Folder;
+import com.dms.entity.SharedDocument;
 import com.dms.entity.User;
 import com.dms.repository.DocumentRepository;
 import com.dms.repository.FolderRepository;
+import com.dms.repository.SharedDocumentRepository;
 import com.dms.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -45,6 +51,9 @@ public class DocumentService {
 
 	@Autowired
 	private FolderRepository folderRepository;
+
+	@Autowired
+	private SharedDocumentRepository sharedDocumentRepo;
 
 	public String uploadDocument(MultipartFile file, Long folderId) throws IOException {
 
@@ -123,7 +132,6 @@ public class DocumentService {
 
 		return documentRepository.findByFileNameContainingIgnoreCase(keyword, pageable).map(this::mapToDTO);
 	}
-	
 
 	public Page<DocumentResponseDTO> getAllDocuments(int page, int size) {
 
@@ -131,7 +139,6 @@ public class DocumentService {
 
 		return documentRepository.findByDeletedFalse(pageable).map(this::mapToDTO);
 	}
-	
 
 	public List<DocumentResponseDTO> getDocumentsByFolder(Long folderId) {
 
@@ -139,7 +146,43 @@ public class DocumentService {
 
 		return documents.stream().map(this::mapToDTO).toList();
 	}
-	
+
+	public String shareDocument(Long documentId, Long userId) {
+
+		Document document = documentRepository.findById(documentId)
+				.orElseThrow(() -> new RuntimeException("Document nit Found"));
+
+		User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Document not Found"));
+
+		SharedDocument sharedDocument = new SharedDocument();
+		sharedDocument.setDocument(document);
+		sharedDocument.setSharedWith(user);
+		sharedDocument.setSharedAt(LocalDateTime.now());
+
+		sharedDocumentRepo.save(sharedDocument);
+
+		return "Document Shared Successfully";
+	}
+
+	public ResponseEntity<Resource> downloadDocument(Long id) throws IOException {
+
+		Document document = documentRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Document not found"));
+
+		Path path = Paths.get(document.getFilePath());
+
+		Resource resource = new UrlResource(path.toUri());
+
+		return ResponseEntity.ok()
+
+				.contentType(MediaType.parseMediaType(document.getFileType()))
+
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+
+						"attachment; filename=\"" + document.getFileName() + "\"")
+
+				.body(resource);
+	}
 
 	private DocumentResponseDTO mapToDTO(Document document) {
 

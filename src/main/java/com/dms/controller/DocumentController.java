@@ -51,19 +51,10 @@ public class DocumentController {
 		return ResponseEntity.ok(documentService.uploadDocument(file, folderId));
 	}
 
-	@GetMapping("/{id}")
+	@GetMapping("/download/{id}")
 	public ResponseEntity<Resource> downloadDocument(@PathVariable Long id) throws IOException {
 
-		Document document = documentRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Document not found"));
-
-		Path path = Paths.get(document.getFilePath());
-
-		Resource resource = new UrlResource(path.toUri());
-
-		return ResponseEntity.ok().contentType(MediaType.parseMediaType(document.getFileType()))
-				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + document.getFileName())
-				.body(resource);
+		return documentService.downloadDocument(id);
 	}
 
 	@GetMapping
@@ -118,5 +109,11 @@ public class DocumentController {
 	public ResponseEntity<List<DocumentResponseDTO>> getDocumentsByFolder(@PathVariable Long folderId) {
 
 		return ResponseEntity.ok(documentService.getDocumentsByFolder(folderId));
+	}
+	
+	@PostMapping("/{id}/share")
+	public ResponseEntity<String>sharedDocument(@PathVariable Long id ,@RequestParam Long userId) {
+		return ResponseEntity.ok(documentService.shareDocument(id, userId));
+		
 	}
 }
