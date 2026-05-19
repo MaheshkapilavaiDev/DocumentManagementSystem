@@ -3,13 +3,12 @@ package com.dms.controller;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +22,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.dms.dto.DocumentResponseDTO;
 import com.dms.entity.Document;
 import com.dms.repository.DocumentRepository;
+import com.dms.repository.FolderRepository;
 import com.dms.service.DocumentService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,13 +37,18 @@ public class DocumentController {
 
 	@Autowired
 	private DocumentService documentService;
+
 	@Autowired
 	private DocumentRepository documentRepository;
 
-	@PostMapping("/upload")
-	public ResponseEntity<String> uploadDocument(@RequestParam("file") MultipartFile file) throws IOException {
+	@Autowired
+	private FolderRepository folderRepository;
 
-		return ResponseEntity.ok(documentService.uploadDocument(file));
+	@PostMapping("/upload")
+	public ResponseEntity<String> uploadDocument(@RequestParam("file") MultipartFile file,
+			@RequestParam(required = false) Long folderId) throws IOException {
+
+		return ResponseEntity.ok(documentService.uploadDocument(file, folderId));
 	}
 
 	@GetMapping("/{id}")
@@ -61,17 +67,17 @@ public class DocumentController {
 	}
 
 	@GetMapping
-	public ResponseEntity<Page<Document>> getAllDocuments(
+	public ResponseEntity<Page<DocumentResponseDTO>> getAllDocuments(
 
-			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size) {
+			@RequestParam(defaultValue = "0") int page,
 
-		Pageable pageable = PageRequest.of(page, size);
+			@RequestParam(defaultValue = "5") int size) {
 
-		return ResponseEntity.ok(documentRepository.findByDeletedFalse(pageable));
+		return ResponseEntity.ok(documentService.getAllDocuments(page, size));
 	}
 
 	@GetMapping("/search")
-	public ResponseEntity<Page<Document>> searchDocuments(
+	public ResponseEntity<Page<DocumentResponseDTO>> searchDocuments(
 
 			@RequestParam String keyword,
 
@@ -79,11 +85,7 @@ public class DocumentController {
 
 			@RequestParam(defaultValue = "5") int size) {
 
-		Pageable pageable = PageRequest.of(page, size);
-
-		return ResponseEntity.ok(
-
-				documentRepository.findByFileNameContainingIgnoreCase(keyword, pageable));
+		return ResponseEntity.ok(documentService.searchDocuments(keyword, page, size));
 	}
 
 	@DeleteMapping("/{id}")
@@ -110,5 +112,11 @@ public class DocumentController {
 		documentRepository.save(document);
 
 		return ResponseEntity.ok("Document Restored");
+	}
+
+	@GetMapping("/folder/{folderId}")
+	public ResponseEntity<List<DocumentResponseDTO>> getDocumentsByFolder(@PathVariable Long folderId) {
+
+		return ResponseEntity.ok(documentService.getDocumentsByFolder(folderId));
 	}
 }
