@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -45,4 +47,13 @@ public class SecurityConfig {
 
 		return new BCryptPasswordEncoder();
 	}
+	
+	@Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Document Management System API")
+                        .version("1.0")
+                        .description("APIs for document upload, sharing, folder management, and access tracking"));
+    }
 }

@@ -90,26 +90,7 @@ public class DocumentService {
 			folder = folderRepository.findById(folderId).orElseThrow(() -> new RuntimeException("Folder not found"));
 		}
 
-		Document document1 = new Document();
-
-		document1.setFileName(file.getOriginalFilename());
-
-		document1.setFileType(file.getContentType());
-
-		document1.setFileSize(file.getSize());
-
-		document1.setFilePath(filePath.toString());
-
-		document1.setUploadedAt(LocalDateTime.now());
-
-		document1.setDeleted(false);
-
-		document1.setOwner(user);
-
-		document1.setFolder(folder);
-
-		documentRepository.save(document1);
-
+		
 		Document document = new Document();
 
 		document.setFileName(file.getOriginalFilename());
@@ -125,6 +106,9 @@ public class DocumentService {
 		document.setDeleted(false);
 
 		document.setOwner(user);
+		
+		document.setFolder(folder);
+
 
 		documentRepository.save(document);
 		

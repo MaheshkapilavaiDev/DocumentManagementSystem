@@ -68,6 +68,8 @@ Download Document
 DELETE /documents/{id}
 Restore Document
 PUT /documents/{id}/restore
+POST/document/{id}/share
+GET /document/download/{id}
 #Folder APIs
 
 Create Folder
