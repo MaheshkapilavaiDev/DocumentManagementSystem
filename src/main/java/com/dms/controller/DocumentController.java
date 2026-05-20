@@ -1,16 +1,11 @@
 package com.dms.controller;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.dms.dto.DocumentResponseDTO;
 import com.dms.entity.Document;
+import com.dms.entity.DocumentAccess;
 import com.dms.repository.DocumentRepository;
 import com.dms.repository.FolderRepository;
 import com.dms.service.DocumentService;
@@ -82,14 +78,7 @@ public class DocumentController {
 	@DeleteMapping("/{id}")
 	public ResponseEntity<String> deleteDocument(@PathVariable Long id) {
 
-		Document document = documentRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Document not found"));
-
-		document.setDeleted(true);
-
-		documentRepository.save(document);
-
-		return ResponseEntity.ok("Document Soft Deleted");
+		return ResponseEntity.ok(documentService.deleteDocument(id));
 	}
 
 	@PutMapping("/{id}/restore")
@@ -115,5 +104,15 @@ public class DocumentController {
 	public ResponseEntity<String>sharedDocument(@PathVariable Long id ,@RequestParam Long userId) {
 		return ResponseEntity.ok(documentService.shareDocument(id, userId));
 		
+	}
+	
+	@GetMapping("/{id}/history")
+	public ResponseEntity<List<DocumentAccess>>
+	getDocumentHistory(
+	        @PathVariable Long id) {
+
+	    return ResponseEntity.ok(
+	            documentService
+	                    .getDocumentHistory(id));
 	}
 }

@@ -26,9 +26,11 @@ import com.dms.dto.DocumentResponseDTO;
 import com.dms.dto.FolderResponseDTO;
 import com.dms.dto.UserResponseDTO;
 import com.dms.entity.Document;
+import com.dms.entity.DocumentAccess;
 import com.dms.entity.Folder;
 import com.dms.entity.SharedDocument;
 import com.dms.entity.User;
+import com.dms.repository.DocumentAccessRepository;
 import com.dms.repository.DocumentRepository;
 import com.dms.repository.FolderRepository;
 import com.dms.repository.SharedDocumentRepository;
@@ -54,6 +56,9 @@ public class DocumentService {
 
 	@Autowired
 	private SharedDocumentRepository sharedDocumentRepo;
+	
+	@Autowired
+	private DocumentAccessRepository documentAccessRepo;
 
 	public String uploadDocument(MultipartFile file, Long folderId) throws IOException {
 
@@ -122,6 +127,11 @@ public class DocumentService {
 		document.setOwner(user);
 
 		documentRepository.save(document);
+		
+		saveAccessHistory(
+		        user,
+		        document,
+		        "UPLOAD");
 
 		return "File Uploaded Successfully";
 	}
@@ -160,6 +170,11 @@ public class DocumentService {
 		sharedDocument.setSharedAt(LocalDateTime.now());
 
 		sharedDocumentRepo.save(sharedDocument);
+		
+		saveAccessHistory(
+		        user,
+		        document,
+		        "SHARE");
 
 		return "Document Shared Successfully";
 	}
@@ -168,6 +183,25 @@ public class DocumentService {
 
 		Document document = documentRepository.findById(id)
 				.orElseThrow(() -> new RuntimeException("Document not found"));
+		
+		Authentication authentication =
+		        SecurityContextHolder
+		                .getContext()
+		                .getAuthentication();
+
+		String email =
+		        authentication.getName();
+
+		User user =
+		        userRepository.findByEmail(email)
+		        .orElseThrow(() ->
+		                new RuntimeException(
+		                        "User not found"));
+		
+		saveAccessHistory(
+	            user,
+	            document,
+	            "DOWNLOAD");
 
 		Path path = Paths.get(document.getFilePath());
 
@@ -182,6 +216,72 @@ public class DocumentService {
 						"attachment; filename=\"" + document.getFileName() + "\"")
 
 				.body(resource);
+	}
+	
+	public List<DocumentAccess>
+	getDocumentHistory(Long documentId) {
+
+	    return documentAccessRepo
+	            .findByDocumentId(documentId);
+	}
+	
+	private void saveAccessHistory(
+	        User user,
+	        Document document,
+	        String action) {
+
+	    DocumentAccess access =
+	            new DocumentAccess();
+
+	    access.setUser(user);
+
+	    access.setDocument(document);
+
+	    access.setAction(action);
+
+	    access.setAccessedAt(
+	            LocalDateTime.now());
+
+	    documentAccessRepo.save(access);
+	}
+	
+	public String deleteDocument(Long id) {
+
+	    // get logged-in user
+
+	    Authentication authentication =
+	            SecurityContextHolder
+	                    .getContext()
+	                    .getAuthentication();
+
+	    String email =
+	            authentication.getName();
+
+	    User user =
+	            userRepository.findByEmail(email)
+	            .orElseThrow(() ->
+	                    new RuntimeException(
+	                            "User not found"));
+
+
+	    Document document =
+	            documentRepository.findById(id)
+	            .orElseThrow(() ->
+	                    new RuntimeException(
+	                            "Document not found"));
+
+
+	    document.setDeleted(true);
+
+	    documentRepository.save(document);
+
+
+	    saveAccessHistory(
+	            user,
+	            document,
+	            "DELETE");
+
+	    return "Document Deleted Successfully";
 	}
 
 	private DocumentResponseDTO mapToDTO(Document document) {
